@@ -1,4 +1,5 @@
 # Python dependencies for Rubik's Cube Solver
 numpy==1.24.3  # For efficient array operations
 pytest==7.3.1  # For unit testing
-matplotlib==3.7.1  # For visualization (future use) 
+matplotlib==3.7.1  # For visualization (future use)
+pandas==2.0.1  # For benchmark result analysis 
