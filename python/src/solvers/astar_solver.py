@@ -37,7 +37,11 @@ class AStarSolver:
         Returns:
             tuple: A hashable representation of the cube.
         """
-        return tuple(tuple(tuple(face) for face in cube.faces))
+        # The rows have to be unpacked all the way down to Python ints: a tuple
+        # that still holds numpy arrays is not hashable, so it cannot be used
+        # as a dict key or put in the visited set.
+        return tuple(tuple(tuple(int(sticker) for sticker in row) for row in face)
+                     for face in cube.faces)
     
     def _reconstruct_path(self, current, came_from):
         """
