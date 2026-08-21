@@ -263,30 +263,41 @@ class RubiksCube:
     def apply_move(self, move):
         """
         Apply a move to the cube.
-        
+
         Args:
-            move (str): Move in standard notation (F, F', B, B', U, U', D, D', L, L', R, R')
+            move (str): Move in standard notation. A face letter (F, B, U, D,
+                        L, R) on its own is a quarter turn clockwise, followed
+                        by ' for counterclockwise or 2 for a half turn
+                        (e.g. F, F', F2).
         """
         move = move.strip()
         prime = False
-        if len(move) > 1 and move[1] == "'":
-            prime = True
+        repetitions = 1
+
+        if len(move) > 1:
+            if move[1] == "'":
+                prime = True
+            elif move[1] == '2':
+                # A half turn is its own inverse, so direction does not matter.
+                repetitions = 2
+            else:
+                raise ValueError(f"Invalid move: {move}")
             move = move[0]
-            
-        if move == 'F':
-            self.move_F(prime)
-        elif move == 'B':
-            self.move_B(prime)
-        elif move == 'U':
-            self.move_U(prime)
-        elif move == 'D':
-            self.move_D(prime)
-        elif move == 'L':
-            self.move_L(prime)
-        elif move == 'R':
-            self.move_R(prime)
-        else:
+
+        methods = {
+            'F': self.move_F,
+            'B': self.move_B,
+            'U': self.move_U,
+            'D': self.move_D,
+            'L': self.move_L,
+            'R': self.move_R,
+        }
+
+        if move not in methods:
             raise ValueError(f"Invalid move: {move}")
+
+        for _ in range(repetitions):
+            methods[move](prime)
     
     def apply_algorithm(self, algorithm):
         """
