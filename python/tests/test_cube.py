@@ -112,6 +112,30 @@ class TestRubiksCube(unittest.TestCase):
         cube.apply_move("R'")
         self.assertTrue(cube.is_solved())
     
+    def test_half_turns(self):
+        """Test that X2 is the same as turning X twice."""
+        for move in ['F', 'B', 'U', 'D', 'L', 'R']:
+            half_turn = RubiksCube()
+            half_turn.apply_move(f"{move}2")
+
+            twice = RubiksCube()
+            twice.apply_move(move)
+            twice.apply_move(move)
+
+            self.assertTrue(np.array_equal(half_turn.faces, twice.faces))
+
+            # A half turn is its own inverse.
+            half_turn.apply_move(f"{move}2")
+            self.assertTrue(half_turn.is_solved())
+
+    def test_invalid_move(self):
+        """Test that unknown notation is rejected."""
+        cube = RubiksCube()
+
+        for move in ['X', 'F3', 'RR', '']:
+            with self.assertRaises(ValueError):
+                cube.apply_move(move)
+
     def test_apply_algorithm(self):
         """Test applying a sequence of moves."""
         cube = RubiksCube()
