@@ -14,6 +14,50 @@ import numpy as np
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'src'))
 from cube import RubiksCube
 
+FRONT, BACK, UP, DOWN, LEFT, RIGHT = range(6)
+
+# Which face each border row/column of a face touches, read straight off the
+# strips that cube.py cycles in its move methods.
+_NEIGHBOURS = {
+    FRONT: {'row0': UP, 'row2': DOWN, 'col0': LEFT, 'col2': RIGHT},
+    BACK: {'row0': UP, 'row2': DOWN, 'col0': RIGHT, 'col2': LEFT},
+    UP: {'row0': BACK, 'row2': FRONT, 'col0': LEFT, 'col2': RIGHT},
+    DOWN: {'row0': FRONT, 'row2': BACK, 'col0': LEFT, 'col2': RIGHT},
+    LEFT: {'row0': UP, 'row2': DOWN, 'col0': BACK, 'col2': FRONT},
+    RIGHT: {'row0': UP, 'row2': DOWN, 'col0': FRONT, 'col2': BACK},
+}
+
+# Where each of the 54 stickers starts out, keyed by its label.
+_STICKER_HOME = {face * 9 + row * 3 + col: (face, row, col)
+                 for face in range(6) for row in range(3) for col in range(3)}
+
+
+def _labelled_faces():
+    """Return a face array whose 54 stickers all carry a distinct label."""
+    return np.arange(54, dtype=np.int16).reshape((6, 3, 3))
+
+
+def _cubie_faces(face, row, col):
+    """Return the set of faces the sticker at this position belongs to."""
+    faces = {face}
+    if row == 0:
+        faces.add(_NEIGHBOURS[face]['row0'])
+    if row == 2:
+        faces.add(_NEIGHBOURS[face]['row2'])
+    if col == 0:
+        faces.add(_NEIGHBOURS[face]['col0'])
+    if col == 2:
+        faces.add(_NEIGHBOURS[face]['col2'])
+    return frozenset(faces)
+
+
+def _cubies():
+    """Group the 54 sticker positions into the cubies they sit on."""
+    groups = {}
+    for position in _STICKER_HOME.values():
+        groups.setdefault(_cubie_faces(*position), []).append(position)
+    return [positions for positions in groups.values() if len(positions) > 1]
+
 
 class TestRubiksCube(unittest.TestCase):
     """Test cases for the RubiksCube class."""
@@ -95,6 +139,61 @@ class TestRubiksCube(unittest.TestCase):
         
         # Reset the cube
         cube.reset()
+        self.assertTrue(cube.is_solved())
+
+    def test_turn_directions(self):
+        """Test that each move turns the face clockwise seen from outside."""
+        # For a clockwise turn of face X, the strip of the face listed second
+        # is the one that ends up on the face listed first.
+        cases = [
+            ('U', (FRONT, 0, slice(None)), RIGHT),
+            ('D', (RIGHT, 2, slice(None)), FRONT),
+            ('F', (RIGHT, slice(None), 0), UP),
+            ('B', (LEFT, slice(None), 0), UP),
+            ('L', (DOWN, slice(None), 0), FRONT),
+            ('R', (UP, slice(None), 2), FRONT),
+        ]
+
+        for move, destination, source_face in cases:
+            cube = RubiksCube()
+            cube.faces = _labelled_faces()
+            cube.apply_move(move)
+            origins = {_STICKER_HOME[int(label)][0]
+                       for label in cube.faces[destination]}
+            self.assertEqual(origins, {source_face},
+                             f"{move} should pull that strip from face {source_face}")
+
+    def test_moves_keep_cubies_intact(self):
+        """Test that every move permutes whole cubies, not loose stickers."""
+        # A face turn that rotates its own face the opposite way from the
+        # strips around it looks plausible sticker by sticker but tears the
+        # corner and edge cubies apart, so check the three stickers of every
+        # corner (and two of every edge) still sit on one cubie afterwards.
+        cubies = _cubies()
+
+        for move in ['F', 'B', 'U', 'D', 'L', 'R']:
+            cube = RubiksCube()
+            cube.faces = _labelled_faces()
+            cube.apply_move(move)
+
+            for stickers in cubies:
+                landed = {_cubie_faces(*_STICKER_HOME[int(cube.faces[sticker])])
+                          for sticker in stickers}
+                self.assertEqual(len(landed), 1,
+                                 f"{move} split a cubie across positions {stickers}")
+
+    def test_two_generator_order(self):
+        """Test that repeating "R U" returns to solved after 105 rounds."""
+        # The order of every two adjacent face turns on a real cube is 105,
+        # which a broken move would almost certainly not reproduce.
+        cube = RubiksCube()
+
+        for repetitions in range(1, 106):
+            cube.apply_algorithm("R U")
+            if repetitions < 105:
+                self.assertFalse(cube.is_solved(),
+                                 f"cube solved early after {repetitions} rounds")
+
         self.assertTrue(cube.is_solved())
 
 

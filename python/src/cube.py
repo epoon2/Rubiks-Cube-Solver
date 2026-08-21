@@ -83,7 +83,9 @@ class RubiksCube:
             face_idx (int): Index of the face to rotate.
             clockwise (bool): If True, rotate clockwise, otherwise counterclockwise.
         """
-        k = 1 if clockwise else 3  # 3 clockwise rotations = 1 counterclockwise
+        # np.rot90 turns counterclockwise, and every face is stored as it looks
+        # from outside the cube, so a clockwise face turn is k=3.
+        k = 3 if clockwise else 1
         self.faces[face_idx] = np.rot90(self.faces[face_idx], k=k)
     
     def _get_face_edge(self, face_idx, edge_idx):
@@ -139,7 +141,7 @@ class RubiksCube:
         # Edges are defined as (face_idx, edge_idx)
         edges = [(2, 2), (5, 3), (3, 0), (4, 1)]
         
-        # Shift edges
+        # Shift edges: a clockwise F sends the bottom row of U to R.
         shift = 1 if prime else -1
         edge_values = [self._get_face_edge(face, edge) for face, edge in edges]
         edge_values = edge_values[shift:] + edge_values[:shift]
@@ -161,8 +163,8 @@ class RubiksCube:
         # Define the affected edges and their new positions
         edges = [(2, 0), (4, 3), (3, 2), (5, 1)]
         
-        # Shift edges (opposite direction from F move)
-        shift = -1 if prime else 1
+        # Shift edges: B turns the opposite way round the cube from F.
+        shift = 1 if prime else -1
         edge_values = [self._get_face_edge(face, edge) for face, edge in edges]
         edge_values = edge_values[shift:] + edge_values[:shift]
         
@@ -183,8 +185,8 @@ class RubiksCube:
         # Define the affected edges and their new positions
         edges = [(0, 0), (5, 0), (1, 0), (4, 0)]
         
-        # Shift edges
-        shift = 1 if prime else -1
+        # Shift edges: a clockwise U sends the top row of R to F.
+        shift = -1 if prime else 1
         edge_values = [self._get_face_edge(face, edge) for face, edge in edges]
         edge_values = edge_values[shift:] + edge_values[:shift]
         
@@ -205,8 +207,8 @@ class RubiksCube:
         # Define the affected edges and their new positions
         edges = [(0, 2), (4, 2), (1, 2), (5, 2)]
         
-        # Shift edges (opposite direction from U move)
-        shift = 1 if prime else -1
+        # Shift edges: D turns the opposite way round the cube from U.
+        shift = -1 if prime else 1
         edge_values = [self._get_face_edge(face, edge) for face, edge in edges]
         edge_values = edge_values[shift:] + edge_values[:shift]
         
@@ -227,8 +229,8 @@ class RubiksCube:
         # Define the affected edges and their new positions
         edges = [(0, 3), (2, 3), (1, 1), (3, 3)]
         
-        # Shift edges
-        shift = 1 if prime else -1
+        # Shift edges: a clockwise L sends the left column of U to F.
+        shift = -1 if prime else 1
         edge_values = [self._get_face_edge(face, edge) for face, edge in edges]
         edge_values = edge_values[shift:] + edge_values[:shift]
         
@@ -249,8 +251,8 @@ class RubiksCube:
         # Define the affected edges and their new positions
         edges = [(0, 1), (3, 1), (1, 3), (2, 1)]
         
-        # Shift edges
-        shift = 1 if prime else -1
+        # Shift edges: a clockwise R sends the right column of D to F.
+        shift = -1 if prime else 1
         edge_values = [self._get_face_edge(face, edge) for face, edge in edges]
         edge_values = edge_values[shift:] + edge_values[:shift]
         
