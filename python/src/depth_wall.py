@@ -18,9 +18,16 @@ rather than taking the experiment down with it.
 import argparse
 import multiprocessing
 import random
-import resource
 import sys
 import time
+
+# The memory cap uses resource.setrlimit, which only exists on Unix. On
+# Windows the experiment still runs; a runaway solver is then bounded only
+# by the per-scramble timeout instead of an address-space limit.
+try:
+    import resource
+except ImportError:
+    resource = None
 
 from cube import RubiksCube
 from solvers.bfs_solver import BFSSolver
@@ -67,8 +74,9 @@ def _run_solver(solver, scramble, memory_limit_gb, results):
         memory_limit_gb (float): Address space cap for this process.
         results (multiprocessing.Queue): Queue to post the outcome on.
     """
-    limit = int(memory_limit_gb * 1024 ** 3)
-    resource.setrlimit(resource.RLIMIT_AS, (limit, limit))
+    if resource is not None:
+        limit = int(memory_limit_gb * 1024 ** 3)
+        resource.setrlimit(resource.RLIMIT_AS, (limit, limit))
 
     cube = RubiksCube()
     cube.apply_algorithm(scramble)
